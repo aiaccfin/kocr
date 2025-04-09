@@ -1,0 +1,18 @@
+What’s the router? document_router that cleanly separates:
+
+DocumentOCR: basic OCR engine for raw text
+
+AI_OCR: advanced extraction + GPT-4 fallback
+
+DocumentClassifier: document type prediction
+
+DocumentRouter: central controller that decides what to run
+
+This makes your system modular, testable, and dynamically updatable.
+
+
+
+DocumentRouter
+├── uses DocumentClassifier → to decide what the doc is
+├── uses Datamond AI OCR → to get text
+└── optionally uses AI_OCR → to extract fields or call GPT-4 Vision

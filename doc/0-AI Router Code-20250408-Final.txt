@@ -1,0 +1,65 @@
+# Document Router with Confidence Score Integration
+# Updated to support aggregated OCR confidence and GPT-enhanced fallback confidence
+
+import cv2
+from pathlib import Path
+from document_ocr import DocumentOCR
+from ai_ocr import AI_OCR
+from document_classifier import DocumentClassifier
+from fallback_openai import fallback_to_openai_vision  # external GPT-4 fallback handler
+
+class DocumentRouter:
+    def __init__(self, min_confidence: int = 80):
+        self.ocr_engine = DocumentOCR()
+        self.full_ocr = AI_OCR()
+        self.classifier = DocumentClassifier()
+        self.min_confidence = min_confidence
+
+    def calculate_avg_confidence(self, ocr_data: dict) -> float:
+        conf_scores = [int(c) for c in ocr_data.get("conf", []) if c.isdigit() and int(c) >= 0]
+        if not conf_scores:
+            return 0.0
+        return round(sum(conf_scores) / len(conf_scores), 2)
+
+    def auto_process(self, file_path: str) -> dict:
+        preview_text = self.ocr_engine.extract_text(file_path)
+        doc_type = self.classifier.classify(preview_text)
+
+        result = {
+            "file_name": Path(file_path).name,
+            "document_type": doc_type,
+            "text_preview": preview_text[:300],
+            "ocr_confidence": None,
+            "fallback_used": False,
+            "confidence_source": ""
+        }
+
+        image = cv2.imread(file_path)
+
+        if doc_type in [
+            'invoice', 'receipt', 'bill', 'vendor_statement', 'payroll',
+            'bank_statement', 'credit_card', 't4', 't2', 'purchase_order', 'reimbursement'
+        ]:
+            detailed = self.full_ocr.process_image_data(image, file_path)
+            avg_conf = self.calculate_avg_confidence(detailed.get("ocr_data", {}))
+            result.update(detailed)
+            result["ocr_confidence"] = avg_conf
+            result["confidence_source"] = "ocr"
+
+            if avg_conf < self.min_confidence:
+                gpt_result = fallback_to_openai_vision(image)
+                result["gpt_summary"] = gpt_result.get("summary")
+                result["document_type"] = gpt_result.get("document_type")
+                result["gpt_prompt"] = gpt_result.get("prompt_used")
+                result["fallback_used"] = True
+                result["confidence_source"] = "gpt"
+
+        else:
+            result["message"] = "No advanced OCR applied (not required)."
+
+        return result
+
+# Example usage:
+# router = DocumentRouter(min_confidence=85)
+# result = router.auto_process("sample_documents/sample_invoice.png")
+# print(result)

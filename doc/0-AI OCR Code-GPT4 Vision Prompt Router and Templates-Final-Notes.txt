@@ -1,0 +1,30 @@
+Your code now includes a complete:
+
+Auto-document type detection (detect_document_type)
+
+Prompt selector (route_prompt)
+
+Unified GPT-4 Vision fallback via fallback_to_openai_vision(image)
+
+This function:
+
+Extracts OCR text
+
+Detects the doc type
+
+Selects the best prompt
+
+Calls GPT-4 Vision and returns the result + metadata
+
+
+
+
+Your fallback (alternative) now:
+
+Detects the document type automatically
+
+Selects the right GPT-4 Vision prompt
+
+Logs everything (doc type, prompt, result)
+
+Gracefully handles failures with fallback messaging

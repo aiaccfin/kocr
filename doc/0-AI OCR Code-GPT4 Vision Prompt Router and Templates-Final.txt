@@ -1,0 +1,91 @@
+# GPT-4 Vision Prompt Router and Templates with Auto-Detection and Fallback, Detects the document type automatically, Selects the right GPT-4 Vision prompt, 
+Logs everything (doc type, prompt, result), Gracefully handles failures with fallback messaging
+
+import pytesseract
+import re
+import cv2
+import base64
+import openai
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+PROMPT_TEMPLATES = {
+    "invoice": "Extract vendor, invoice number, date, subtotal, tax, total, and payment method from this invoice. Provide a short summary.",
+    "bill": "Extract the utility type, account number, billing period, amount due, due date, and provider name from this bill.",
+    "receipt": "Extract store name, date, time, list of items purchased with prices, tax, total amount, and payment method.",
+    "bank_statement": "Extract bank name, account number, statement period, opening balance, closing balance, and list of transactions with date, description, and amount.",
+    "credit_card": "Extract credit card provider, card number, billing period, due date, total amount, and itemized transactions.",
+    "vendor_statement": "Extract vendor name, statement date, account balance, due invoices, and list of transactions (invoices, payments).",
+    "payroll": "Extract employee name, employer name, pay period, pay date, gross pay, deductions, and net pay.",
+    "cra_letter": "Summarize this CRA letter: who it’s for, reason for the letter, actions required, deadline, and contact information.",
+    "financial_report": "Summarize this financial report. Extract company name, reporting period, key financial figures (revenue, expenses, net income), and include any notes if available.",
+    "unknown": "Try to understand this document. Summarize its contents and extract any structured information like dates, names, totals, or instructions."
+}
+
+def route_prompt(doc_type: str) -> str:
+    return PROMPT_TEMPLATES.get(doc_type.lower(), PROMPT_TEMPLATES["unknown"])
+
+def detect_document_type(text: str) -> str:
+    text_lower = text.lower()
+    if "invoice" in text_lower:
+        return "invoice"
+    elif "receipt" in text_lower:
+        return "receipt"
+    elif "statement" in text_lower and "bank" in text_lower:
+        return "bank_statement"
+    elif "credit card" in text_lower:
+        return "credit_card"
+    elif "vendor" in text_lower and "balance" in text_lower:
+        return "vendor_statement"
+    elif "payroll" in text_lower or "net pay" in text_lower:
+        return "payroll"
+    elif "canada revenue" in text_lower or "cra" in text_lower:
+        return "cra_letter"
+    elif "revenue" in text_lower and "expenses" in text_lower:
+        return "financial_report"
+    elif "bill" in text_lower or "utility" in text_lower:
+        return "bill"
+    return "unknown"
+
+def fallback_to_openai_vision(image: any) -> dict:
+    try:
+        logger.info("Running fallback to OpenAI Vision with document type auto-detection...")
+        text_preview = pytesseract.image_to_string(image)
+        doc_type = detect_document_type(text_preview)
+        prompt = route_prompt(doc_type)
+
+        _, buffer = cv2.imencode('.png', image)
+        img_b64 = base64.b64encode(buffer).decode('utf-8')
+
+        response = openai.ChatCompletion.create(
+            model="gpt-4-vision-preview",
+            messages=[
+                {"role": "user", "content": [
+                    {"type": "text", "text": prompt},
+                    {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{img_b64}"}}
+                ]}
+            ],
+            max_tokens=1000
+        )
+
+        summary = response.choices[0].message.content.strip()
+        logger.info(f"Document type detected: {doc_type}")
+        logger.info(f"Prompt used: {prompt}")
+        logger.info("OpenAI Vision summary received successfully.")
+
+        return {
+            "summary": summary,
+            "document_type": doc_type,
+            "prompt_used": prompt
+        }
+
+    except Exception as e:
+        logger.error(f"OpenAI Vision fallback failed: {e}")
+        return {
+            "summary": "Failed to process with GPT-4 Vision.",
+            "document_type": "unknown",
+            "prompt_used": ""
+        }

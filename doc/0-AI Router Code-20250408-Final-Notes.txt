@@ -1,0 +1,9 @@
+Your DocumentRouter now includes:
+
+📊 OCR confidence scoring (aggregated from word-level Tesseract output)
+
+🧠 Fallback to GPT-4 Vision if confidence is below a user-defined threshold
+
+🔧 Configurable min_confidence level (admin-adjustable)
+
+🪄 Metadata like confidence_source and fallback_used to track origin

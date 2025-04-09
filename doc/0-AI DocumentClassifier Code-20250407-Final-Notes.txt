@@ -1,0 +1,11 @@
+Your Classify Module has been upgraded into a clean and modular class called DocumentClassifier, now available in the canvas.
+
+Key Features:
+✅ Rule-based matching using regular expressions
+
+✅ Optional ML-based fallback using TfidfVectorizer + NaiveBayes
+
+✅ Built-in model training and saving (train_model)
+
+✅ Easy label management (available_labels)
+
