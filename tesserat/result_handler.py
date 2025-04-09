@@ -6,19 +6,21 @@ def combine_results(results: List[Dict[str, Any]]) -> Dict[str, Any]:
     avg_conf = round(sum(r.get("confidence", 0.0) for r in results) / len(results), 2)
 
     combined_lines = sum([r.get("lines", []) for r in results], [])
+    
+    return{"lines": combined_lines,}
 
-    return {
-        "text": text,
-        "pretty_text": text.strip().splitlines(),
-        "fields": {
-            "vendor": results[0]["fields"].get("vendor", ""),
-            "dates": sum([r["fields"]["dates"] for r in results], []),
-            "amounts": sum([r["fields"]["amounts"] for r in results], []),
-            "line_items": sum([r["fields"]["line_items"] for r in results], [])
-        },
-        "lines": combined_lines,  # ⬅️ Added line-level detail
-        "confidence": avg_conf
-    }
+    # return {
+    #     "text": text,
+    #     "pretty_text": text.strip().splitlines(),
+    #     "fields": {
+    #         "vendor": results[0]["fields"].get("vendor", ""),
+    #         "dates": sum([r["fields"]["dates"] for r in results], []),
+    #         "amounts": sum([r["fields"]["amounts"] for r in results], []),
+    #         "line_items": sum([r["fields"]["line_items"] for r in results], [])
+    #     },
+    #     "lines": combined_lines,  # ⬅️ Added line-level detail
+    #     "confidence": avg_conf
+    # }
 
 # def combine_results(results: List[Dict[str, Any]]) -> Dict[str, Any]:
 #     text = "\n".join([r["text"] for r in results])

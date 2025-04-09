@@ -1,5 +1,5 @@
 import spacy
-from core.config import logger
+from tesserat.config import logger
 
 try:
     nlp = spacy.load("en_core_web_sm")

@@ -1,12 +1,12 @@
 import os, cv2, numpy, cv2
 
 from pathlib import Path
-from vision import image_utils, ocr_engine
-from extractors import field_extractors, nlp_utils
+from tesserat.vision import image_utils, ocr_engine
+from tesserat.extractors import field_extractors, nlp_utils
 from . import  result_handler
 from .config import logger
 
-class AI_OCR:
+class Tesserat_OCR:
     def __init__(self, output_dir="output"):
         self.output_dir = output_dir
         Path(output_dir).mkdir(exist_ok=True)
